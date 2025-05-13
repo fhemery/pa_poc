@@ -3,15 +3,17 @@
 namespace App\Service;
 
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
 class TokenBlacklistService
 {
     private FilesystemAdapter $cache;
     
-    public function __construct()
+    public function __construct(ParameterBagInterface $params)
     {
-        $this->cache = new FilesystemAdapter('jwt_blacklist', 0, '%kernel.project_dir%/var/cache/jwt_blacklist');
+        $cacheDir = $params->get('kernel.project_dir') . '/var/cache/jwt_blacklist';
+        $this->cache = new FilesystemAdapter('jwt_blacklist', 0, $cacheDir);
     }
     
     public function blacklist(string $token, int $expiresAt): void
