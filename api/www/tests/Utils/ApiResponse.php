@@ -36,11 +36,7 @@ class ApiResponse
         return $this->statusCode;
     }
 
-    /**
-     * Get the decoded JSON data
-     */
-    public function json(): array
-    {
+    public function body (): array {
         return $this->jsonData;
     }
 

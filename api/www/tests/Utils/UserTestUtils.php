@@ -15,63 +15,42 @@ class UserTestUtils
     }
     
     /**
-     * Register a new user for testing
+     * Register a user from a TestUser object
      */
-    public function registerUser(string $email, string $password, string $firstName = 'Test', string $lastName = 'User'): array
+    public function registerAs(TestUser $user)
     {
-        $userData = [
-            'email' => $email,
-            'password' => $password,
-            'firstName' => $firstName,
-            'lastName' => $lastName
-        ];
-        
-        $response = $this->testCase->jsonPost('/api/public/register', $userData);
+        $response = $this->testCase->jsonPost('/api/public/register', $user->toRegistrationArray());
         
         $statusCode = $response->getStatusCode();
         if ($statusCode !== Response::HTTP_CREATED) {
             throw new \RuntimeException(sprintf('Failed to register user: %s', json_encode($response->json())));
         }
-        
-        return $response->json();
     }
-    
+
     /**
-     * Login a user and store the JWT token
+     * Login a user from a TestUser object and store the JWT token
      */
-    public function loginUser(string $email, string $password): array
+    public function loginAs(TestUser $user)
     {
-        $loginData = [
-            'username' => $email,
-            'password' => $password
-        ];
-        
-        $response = $this->testCase->jsonPost('/api/login', $loginData);
+        $response = $this->testCase->jsonPost('/api/login', $user->toLoginArray());
         
         $statusCode = $response->getStatusCode();
         if ($statusCode !== Response::HTTP_OK) {
             throw new \RuntimeException(sprintf('Failed to login user: %s', json_encode($response->json())));
         }
         
-        $responseData = $response->json();
-        if (!isset($responseData['token'])) {
+        if (null === $response->get('token')) {
             throw new \RuntimeException('No token returned from login');
         }
-        
-        return $responseData;
     }
     
     /**
-     * Register and login a user in one step
+     * Register and login a user from a TestUser object in one step
      */
-    public function registerAndLoginUser(?string $email = null, string $password = 'Test123!'): array
+    public function registerAndLoginAs(TestUser $user)
     {
-        if ($email === null) {
-            $email = 'test' . uniqid() . '@example.com';
-        }
-        
-        $this->registerUser($email, $password);
-        return $this->loginUser($email, $password);
+        $this->registerAs($user);
+        $this->loginAs($user);
     }
     
     /**
@@ -94,6 +73,7 @@ class UserTestUtils
             throw new \RuntimeException(sprintf('Failed to get user details: %s', json_encode($response->json())));
         }
         
-        return $response->json();
+        return $response->body();
     }
+    
 }

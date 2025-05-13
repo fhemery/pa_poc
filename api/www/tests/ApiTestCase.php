@@ -3,6 +3,7 @@
 namespace App\Tests;
 
 use App\Tests\Utils\ApiResponse;
+use App\Tests\Utils\UserBuilder;
 use App\Tests\Utils\UserTestUtils;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -40,8 +41,31 @@ abstract class ApiTestCase extends WebTestCase
         
         // Initialize the user utils
         $this->userUtils = new UserTestUtils($this);
+        
+        // Create standard test users (Alice and Bob)
+        $this->createStandardTestUsers();
+        
     }
 
+    /**
+     * Create standard test users (Alice and Bob) that can be used in all tests
+     */
+    protected function createStandardTestUsers(): void
+    {
+        try {
+            // Try to create Alice
+            $alice = UserBuilder::Alice();
+            $this->userUtils->registerAs($alice);
+            
+            // Try to create Bob
+            $bob = UserBuilder::Bob();
+            $this->userUtils->registerAs($bob);
+        } catch (\Exception $e) {
+            // Users might already exist, which is fine
+            // We'll just continue with the test
+        }
+    }
+    
     protected function tearDown(): void
     {
         // Rollback the transaction to clean up after the test

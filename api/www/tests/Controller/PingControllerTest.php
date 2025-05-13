@@ -16,8 +16,6 @@ class PingControllerTest extends ApiTestCase
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());    
         
         // Assert that the response contains the expected data
-        $this->assertIsArray($response->json());
-        $this->assertArrayHasKey('status', $response->json());
-        $this->assertEquals('ok', $response->json()['status']);
+        $this->assertEquals('ok', $response->get('status'));
     }
 }
