@@ -1,0 +1,9 @@
+lexik_jwt_authentication:
+    # Use a simple secret string instead of PEM files
+    encoder:
+        # use lcobucci/jwt v4 with signature
+        service: lexik_jwt_authentication.encoder.lcobucci
+        signature_algorithm: HS256
+    token_ttl: 3600 # token TTL in seconds, default is 3600
+    # Use a simple secret key instead of PEM files
+    secret_key: '%env(JWT_SECRET)%'

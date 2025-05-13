@@ -1,0 +1,175 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\User;
+use App\Repository\UserRepository;
+use App\Service\TokenBlacklistService;
+use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+
+#[Route('/api')]
+class UserController extends AbstractController
+{
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private UserPasswordHasherInterface $passwordHasher,
+        private ValidatorInterface $validator,
+        private UserRepository $userRepository,
+        private JWTTokenManagerInterface $jwtManager,
+        private TokenStorageInterface $tokenStorage,
+        private TokenBlacklistService $tokenBlacklistService
+    ) {
+    }
+
+    #[Route('/public/register', name: 'api_register', methods: ['POST'])]
+    public function register(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        // Validate required fields
+        if (!isset($data['email']) || !isset($data['password']) || !isset($data['firstName']) || !isset($data['lastName'])) {
+            return $this->json([
+                'message' => 'Missing required fields'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Check if user already exists
+        $existingUser = $this->userRepository->findOneBy(['email' => $data['email']]);
+        if ($existingUser) {
+            return $this->json([
+                'message' => 'User already exists'
+            ], Response::HTTP_CONFLICT);
+        }
+
+        // Create new user
+        $user = new User();
+        $user->setEmail($data['email']);
+        $user->setFirstName($data['firstName']);
+        $user->setLastName($data['lastName']);
+        
+        // Hash the password
+        $hashedPassword = $this->passwordHasher->hashPassword($user, $data['password']);
+        $user->setPassword($hashedPassword);
+        
+        // Set roles (default to ROLE_USER)
+        $user->setRoles(['ROLE_USER']);
+
+        // Validate user entity
+        $errors = $this->validator->validate($user);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            
+            return $this->json([
+                'message' => 'Validation failed',
+                'errors' => $errorMessages
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Save the user
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'message' => 'User registered successfully',
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'firstName' => $user->getFirstName(),
+                'lastName' => $user->getLastName()
+            ]
+        ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/profile', name: 'api_profile', methods: ['GET'])]
+    public function profile(): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        
+        if (!$user) {
+            return $this->json([
+                'message' => 'User not authenticated'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return $this->json([
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'firstName' => $user->getFirstName(),
+                'lastName' => $user->getLastName(),
+                'roles' => $user->getRoles()
+            ]
+        ]);
+    }
+    
+    #[Route('/users/me', name: 'api_users_me', methods: ['GET'])]
+    public function me(): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        
+        if (!$user) {
+            return $this->json([
+                'message' => 'User not authenticated'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return $this->json([
+            'email' => $user->getEmail()
+        ]);
+    }
+
+    #[Route('/logout', name: 'api_logout', methods: ['POST'])]
+    public function logout(Request $request): JsonResponse
+    {
+        // Get the JWT token from the request
+        $authHeader = $request->headers->get('Authorization');
+        if (!$authHeader) {
+            return $this->json([
+                'message' => 'No token provided'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        // Extract the token from the Authorization header
+        $token = str_replace('Bearer ', '', $authHeader);
+        
+        // Get the token payload to determine expiration
+        $tokenParts = explode('.', $token);
+        if (count($tokenParts) !== 3) {
+            return $this->json([
+                'message' => 'Invalid token format'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        $payload = json_decode(base64_decode($tokenParts[1]), true);
+        if (!isset($payload['exp'])) {
+            return $this->json([
+                'message' => 'Token has no expiration time'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        // Blacklist the token until its expiration time
+        $this->tokenBlacklistService->blacklist($token, $payload['exp']);
+        
+        // Invalidate the token in the token storage
+        $this->tokenStorage->setToken(null);
+        
+        return $this->json([
+            'message' => 'Logged out successfully'
+        ]);
+    }
+}

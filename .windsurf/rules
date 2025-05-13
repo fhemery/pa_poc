@@ -2,5 +2,6 @@
 - for PHP backend, the url is http://localhost (with no port number)
 - for Vue frontend, the url is http://localhost:5173 
 - use pnpm as a package manager instead of npm
+- create folders directly, do not use the docker container to create folders
 - don't comment every single line of code you write. comment only if code is non-natural
 - don't document functions unless explicitly requested
