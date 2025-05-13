@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\TokenBlacklistService;
+use App\Service\UserValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,7 +28,8 @@ class UserController extends AbstractController
         private UserRepository $userRepository,
         private JWTTokenManagerInterface $jwtManager,
         private TokenStorageInterface $tokenStorage,
-        private TokenBlacklistService $tokenBlacklistService
+        private TokenBlacklistService $tokenBlacklistService,
+        private UserValidatorService $userValidator
     ) {
     }
 
@@ -36,19 +38,21 @@ class UserController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        // Validate required fields
-        if (!isset($data['email']) || !isset($data['password']) || !isset($data['firstName']) || !isset($data['lastName'])) {
-            return $this->json([
-                'message' => 'Missing required fields'
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
         // Check if user already exists
-        $existingUser = $this->userRepository->findOneBy(['email' => $data['email']]);
+        $existingUser = $this->userRepository->findOneBy(['email' => $data['email'] ?? '']);
         if ($existingUser) {
             return $this->json([
                 'message' => 'User already exists'
             ], Response::HTTP_CONFLICT);
+        }
+
+        // Validate registration data
+        $validationError = $this->userValidator->validateRegistrationData($data);
+        if ($validationError) {
+            return $this->json(
+                array_diff_key($validationError, ['status' => true]), 
+                $validationError['status']
+            );
         }
 
         // Create new user
@@ -64,7 +68,7 @@ class UserController extends AbstractController
         // Set roles (default to ROLE_USER)
         $user->setRoles(['ROLE_USER']);
 
-        // Validate user entity
+        // Validate user entity (for any other validation constraints)
         $errors = $this->validator->validate($user);
         if (count($errors) > 0) {
             $errorMessages = [];

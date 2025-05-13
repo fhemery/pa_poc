@@ -17,31 +17,21 @@ class UserTestUtils
     /**
      * Register a user from a TestUser object
      */
-    public function registerAs(TestUser $user)
+    public function registerAs(TestUser $user): ApiResponse
     {
         $response = $this->testCase->jsonPost('/api/public/register', $user->toRegistrationArray());
-        
-        $statusCode = $response->getStatusCode();
-        if ($statusCode !== Response::HTTP_CREATED) {
-            throw new \RuntimeException(sprintf('Failed to register user: %s', json_encode($response->json())));
-        }
+
+        return $response;
     }
 
     /**
      * Login a user from a TestUser object and store the JWT token
      */
-    public function loginAs(TestUser $user)
+    public function loginAs(TestUser $user): ApiResponse
     {
         $response = $this->testCase->jsonPost('/api/login', $user->toLoginArray());
         
-        $statusCode = $response->getStatusCode();
-        if ($statusCode !== Response::HTTP_OK) {
-            throw new \RuntimeException(sprintf('Failed to login user: %s', json_encode($response->json())));
-        }
-        
-        if (null === $response->get('token')) {
-            throw new \RuntimeException('No token returned from login');
-        }
+        return $response;
     }
     
     /**

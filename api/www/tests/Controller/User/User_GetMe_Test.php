@@ -7,7 +7,7 @@ use App\Tests\Utils\UserBuilder;
 use App\Tests\Utils\UserTestUtils;
 use Symfony\Component\HttpFoundation\Response;
 
-class UserControllerTest extends ApiTestCase
+class User_GetMe_Test extends ApiTestCase
 {
     protected function setUp(): void
     {
