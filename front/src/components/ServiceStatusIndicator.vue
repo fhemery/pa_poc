@@ -66,9 +66,13 @@ const statusText = computed(() => {
 <template>
   <div class="status-indicator-container">
     <div 
-      class="status-indicator" 
+      :class="[
+        'status-indicator', 
+        `status-${serviceStatus}`
+      ]" 
       :style="{ backgroundColor: statusColor }" 
       :title="statusText"
+      data-testid="service-status-indicator"
     ></div>
   </div>
 </template>
@@ -84,5 +88,18 @@ const statusText = computed(() => {
   height: 1rem;
   border-radius: 50%;
   transition: background-color 0.3s ease;
+}
+
+/* Status-specific classes */
+.status-online {
+  background-color: #4CAF50 !important; /* Green */
+}
+
+.status-offline {
+  background-color: #F44336 !important; /* Red */
+}
+
+.status-unknown {
+  background-color: #9E9E9E !important; /* Grey */
 }
 </style>
