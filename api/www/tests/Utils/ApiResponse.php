@@ -4,11 +4,16 @@ namespace App\Tests\Utils;
 
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * ApiResponse class that wraps a Symfony Response with convenient methods for testing
+ */
+#[\AllowDynamicProperties] // Allow dynamic properties for PHP 8.2+ compatibility
 class ApiResponse
 {
     private int $statusCode;
     private array $jsonData;
     private array $headers;
+    private Response $originalResponse;
 
     public function __construct(Response $response)
     {
@@ -95,5 +100,45 @@ class ApiResponse
     public function hasHeader(string $name): bool
     {
         return isset($this->headers[strtolower($name)]);
+    }
+    
+    /**
+     * Check if the response is successful (2xx status code)
+     */
+    public function isSuccessful(): bool
+    {
+        return $this->statusCode >= 200 && $this->statusCode < 300;
+    }
+
+    /**
+     * Check if the response is a redirect (3xx status code)
+     */
+    public function isRedirect(): bool
+    {
+        return $this->statusCode >= 300 && $this->statusCode < 400;
+    }
+
+    /**
+     * Check if the response is a client error (4xx status code)
+     */
+    public function isClientError(): bool
+    {
+        return $this->statusCode >= 400 && $this->statusCode < 500;
+    }
+
+    /**
+     * Check if the response is a server error (5xx status code)
+     */
+    public function isServerError(): bool
+    {
+        return $this->statusCode >= 500;
+    }
+
+    /**
+     * Get the original Symfony response object
+     */
+    public function getOriginalResponse(): Response
+    {
+        return $this->originalResponse;
     }
 }

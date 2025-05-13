@@ -1,0 +1,3 @@
+# Ignore specific deprecation notices
+/Subscribing to onSchemaCreateTable events is deprecated/
+/Setting the "doctrine.dbal.path" or "memory" options while the "url" one is defined is deprecated/

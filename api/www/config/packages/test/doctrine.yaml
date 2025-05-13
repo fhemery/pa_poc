@@ -1,9 +1,8 @@
 doctrine:
     dbal:
         # Use SQLite in-memory database for tests
-        driver: pdo_sqlite
-        path: ':memory:'
-        memory: true
+        # Override the DATABASE_URL from .env.test
+        url: 'sqlite:///:memory:'
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true

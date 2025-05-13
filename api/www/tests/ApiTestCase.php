@@ -86,7 +86,7 @@ abstract class ApiTestCase extends WebTestCase
     /**
      * Make a JSON request to the API
      */
-    public function jsonRequest(string $method, string $uri, array $parameters = [], array $files = [], array $server = [], string $content = null, bool $changeHistory = true): ApiResponse
+    public function jsonRequest(string $method, string $uri, array $parameters = [], array $files = [], array $server = [], ?string $content = null, bool $changeHistory = true): ApiResponse
     {
         $server = array_merge([
             'CONTENT_TYPE' => 'application/json',
