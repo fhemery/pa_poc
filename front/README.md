@@ -1,64 +1,96 @@
-# pa-front
+# Novel Review Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue.js frontend for the Novel Review application. This application communicates with the Symfony backend API.
 
-## Recommended IDE Setup
+## Prerequisites
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Node.js (v18 or higher)
+- pnpm (v8 or higher)
+- Running backend API (see [API README](../api/README.md))
 
-## Type Support for `.vue` Imports in TS
+## Quick Start
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+1. Install dependencies:
+   ```sh
+   pnpm install
+   ```
 
-## Customize configuration
+2. Start the development server:
+   ```sh
+   pnpm dev
+   ```
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+3. Access the application at http://localhost:5173
 
-## Project Setup
+## Development Workflow
 
-```sh
-pnpm install
+### Project Structure
+
+```
+src/
+├── assets/       # Static assets (CSS, images)
+├── components/   # Vue components
+├── services/     # API services
+├── views/        # Page components
+└── App.vue       # Root component
 ```
 
-### Compile and Hot-Reload for Development
+### API Communication
 
-```sh
-pnpm dev
+The application communicates with the backend API at http://localhost. API services are located in `src/services/`.
+
+## Testing
+
+### E2E Testing with Playwright
+
+The application uses Playwright for E2E testing with a Page Object Model pattern.
+
+1. Install Playwright browsers (first time only):
+   ```sh
+   pnpm test:e2e:install
+   ```
+
+2. Make sure the backend API is running:
+   ```sh
+   cd ../api
+   docker compose up -d
+   ```
+
+3. Start the development server (if not already running):
+   ```sh
+   pnpm dev
+   ```
+
+4. Run the E2E tests:
+   ```sh
+   pnpm test:e2e
+   ```
+
+5. Run tests with UI mode (for debugging):
+   ```sh
+   pnpm test:e2e:ui
+   ```
+
+6. View the test report:
+   ```sh
+   pnpm test:e2e:report
+   ```
+
+### Test Structure
+
+```
+e2e/
+├── pages/         # Page Object Model classes
+│   ├── home.po.ts        # Home page interactions
+│   └── about.po.ts       # About page interactions
+├── service-status.spec.ts # Tests for service status indicator
+└── test-utils.ts         # Test utilities and helpers
 ```
 
-### Type-Check, Compile and Minify for Production
+## Building for Production
 
 ```sh
 pnpm build
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-pnpm test:unit
-```
-
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
-
-```sh
-# Install browsers for the first run
-npx playwright install
-
-# When testing on CI, must build the project first
-pnpm build
-
-# Runs the end-to-end tests
-pnpm test:e2e
-# Runs the tests only on Chromium
-pnpm test:e2e --project=chromium
-# Runs the tests of a specific file
-pnpm test:e2e tests/example.spec.ts
-# Runs the tests in debug mode
-pnpm test:e2e --debug
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-pnpm lint
-```
+This creates a `dist` directory with production-ready files.
