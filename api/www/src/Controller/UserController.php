@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\RefreshTokenService;
 use App\Service\TokenBlacklistService;
 use App\Service\UserValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,7 +30,8 @@ class UserController extends AbstractController
         private JWTTokenManagerInterface $jwtManager,
         private TokenStorageInterface $tokenStorage,
         private TokenBlacklistService $tokenBlacklistService,
-        private UserValidatorService $userValidator
+        private UserValidatorService $userValidator,
+        private RefreshTokenService $refreshTokenService
     ) {
     }
 
@@ -97,26 +99,47 @@ class UserController extends AbstractController
         ], Response::HTTP_CREATED);
     }
 
-    #[Route('/profile', name: 'api_profile', methods: ['GET'])]
-    public function profile(): JsonResponse
+    #[Route('/login', name: 'api_login', methods: ['POST'])]
+    public function login(Request $request): JsonResponse
     {
-        /** @var User $user */
-        $user = $this->getUser();
+        $data = json_decode($request->getContent(), true);
+        
+        $email = $data['email'] ?? null;
+        $password = $data['password'] ?? null;
+        
+        if (empty($email) || empty($password)) {
+            return $this->json([
+                'message' => 'Email and password are required'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        // Find the user by email
+        $user = $this->userRepository->findOneBy(['email' => $email]);
         
         if (!$user) {
             return $this->json([
-                'message' => 'User not authenticated'
+                'message' => 'Invalid credentials'
             ], Response::HTTP_UNAUTHORIZED);
         }
-
+        
+        // Verify the password
+        if (!$this->passwordHasher->isPasswordValid($user, $password)) {
+            return $this->json([
+                'message' => 'Invalid credentials'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+        
+        // Generate JWT access token
+        $accessToken = $this->jwtManager->create($user);
+        
+        // Generate refresh token
+        $refreshToken = $this->refreshTokenService->createRefreshToken($user);
+        
         return $this->json([
-            'user' => [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
-                'roles' => $user->getRoles()
-            ]
+            'accessToken' => $accessToken,
+            'refreshToken' => $refreshToken->getToken(),
+            'expiresIn' => 3600, // Access token TTL in seconds (1 hour)
+            'refreshExpiresIn' => 7776000 // Refresh token TTL in seconds (90 days)
         ]);
     }
     
@@ -172,8 +195,54 @@ class UserController extends AbstractController
         // Invalidate the token in the token storage
         $this->tokenStorage->setToken(null);
         
+        // Get refresh token from request body
+        $data = json_decode($request->getContent(), true);
+        if (!empty($data['refreshToken'])) {
+            // Revoke the refresh token
+            $this->refreshTokenService->revokeRefreshToken($data['refreshToken']);
+        }
+        
         return $this->json([
             'message' => 'Logged out successfully'
         ]);
+    }
+    
+    #[Route('/refresh-token', name: 'api_refresh_token', methods: ['POST'])]
+    public function refreshToken(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        
+        if (empty($data['refreshToken'])) {
+            return $this->json([
+                'message' => 'Refresh token is required'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        try {
+            // Validate the refresh token
+            $refreshToken = $this->refreshTokenService->validateRefreshToken($data['refreshToken']);
+            
+            // Get the user from the refresh token
+            $user = $refreshToken->getUser();
+            
+            // Generate a new access token
+            $accessToken = $this->jwtManager->create($user);
+            
+            // Optionally, rotate the refresh token for better security
+            // This invalidates the old refresh token and creates a new one
+            $this->refreshTokenService->revokeRefreshToken($data['refreshToken']);
+            $newRefreshToken = $this->refreshTokenService->createRefreshToken($user);
+            
+            return $this->json([
+                'accessToken' => $accessToken,
+                'refreshToken' => $newRefreshToken->getToken(),
+                'expiresIn' => 3600, // Access token TTL in seconds (1 hour)
+                'refreshExpiresIn' => 7776000 // Refresh token TTL in seconds (90 days)
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'message' => $e->getMessage()
+            ], Response::HTTP_UNAUTHORIZED);
+        }
     }
 }

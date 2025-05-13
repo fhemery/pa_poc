@@ -27,9 +27,12 @@ class UserTestUtils
     /**
      * Login a user from a TestUser object and store the JWT token
      */
-    public function loginAs(TestUser $user): ApiResponse
+    public function loginAs(TestUser $user, bool $assertOk = true): ApiResponse
     {
         $response = $this->testCase->jsonPost('/api/login', $user->toLoginArray());
+        if ($assertOk) {
+            $this->testCase->assertEquals(Response::HTTP_OK, $response->getStatusCode(), "User login is failing");
+        }
         
         return $response;
     }
@@ -45,10 +48,37 @@ class UserTestUtils
     
     /**
      * Logout the current user
+     * 
+     * @param string|null $refreshToken The refresh token to invalidate (optional)
      */
-    public function logoutUser(): void
+    public function logoutUser(?string $refreshToken = null): void
     {
-        $this->testCase->jsonPost('/api/logout');
+        $data = [];
+        if ($refreshToken) {
+            $data['refreshToken'] = $refreshToken;
+        }
+        
+        $this->testCase->jsonPost('/api/logout', $data);
+    }
+    
+    /**
+     * Refresh the token using a refresh token
+     * 
+     * @param string $refreshToken The refresh token to use
+     * @param bool $assertOk Whether to assert that the response status is OK
+     * @return ApiResponse The API response
+     */
+    public function renewToken(string $refreshToken, bool $assertOk = true): ApiResponse
+    {
+        $response = $this->testCase->jsonPost('/api/refresh-token', [
+            'refreshToken' => $refreshToken
+        ]);
+        
+        if ($assertOk) {
+            $this->testCase->assertEquals(Response::HTTP_OK, $response->getStatusCode(), "Token refresh is failing");
+        }
+        
+        return $response;
     }
     
     /**

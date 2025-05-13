@@ -144,18 +144,15 @@ abstract class ApiTestCase extends WebTestCase
         if ($response->getStatusCode() === Response::HTTP_OK || $response->getStatusCode() === Response::HTTP_CREATED) {
             $data = json_decode($response->getContent(), true);
             
-            // Check for token in response
-            if (isset($data['token'])) {
-                $this->jwtToken = $data['token'];
+            if (isset($data['accessToken'])) {
+                $this->jwtToken = $data['accessToken'];
             }
             
-            // Check for user data in response
             if (isset($data['user'])) {
                 $this->currentUser = $data['user'];
             }
         }
         
-        // Handle logout - clear token if we get a successful logout response
         $requestUri = $this->client->getRequest()->getUri();
         if (strpos($requestUri, '/api/logout') !== false && $response->getStatusCode() === Response::HTTP_OK) {
             $this->jwtToken = null;

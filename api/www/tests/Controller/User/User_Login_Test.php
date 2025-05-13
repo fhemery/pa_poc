@@ -20,7 +20,7 @@ class User_Login_Test extends ApiTestCase
         );
         
         // Try to login with the non-existent user
-        $response = $this->userUtils->loginAs($nonExistentUser);
+        $response = $this->userUtils->loginAs($nonExistentUser, false);
         
         // Assert response
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
@@ -40,7 +40,7 @@ class User_Login_Test extends ApiTestCase
         );
         
         // Try to login with wrong password
-        $response = $this->userUtils->loginAs($aliceWithWrongPassword);
+        $response = $this->userUtils->loginAs($aliceWithWrongPassword, false);
         
         // Assert response
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
@@ -53,10 +53,24 @@ class User_Login_Test extends ApiTestCase
         $this->userUtils->registerAs($alice);
         
         // Login with Alice's credentials
-        $response = $this->userUtils->loginAs($alice);
+        $response = $this->userUtils->loginAs($alice, false);
         
         // Assert response
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertNotNull($response->get('token'), 'Login response should contain a JWT token');
+        $this->assertNotNull($response->get('accessToken'), 'Login response should contain an access token');
+    }
+
+    public function test_Login_shouldReturn200_withAccessAndRefreshTokens(): void
+    {
+        // Register a new user
+        $user = UserBuilder::Alice();
+        $response = $this->userUtils->loginAs($user);
+        
+        // Assert response
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertNotNull($response->get('accessToken'), 'Response should contain an access token');
+        $this->assertNotNull($response->get('refreshToken'), 'Response should contain a refresh token');
+        $this->assertEquals(3600, $response->get('expiresIn'), 'Access token should expire in 1 hour');
+        $this->assertEquals(7776000, $response->get('refreshExpiresIn'), 'Refresh token should expire in 90 days');
     }
 }
