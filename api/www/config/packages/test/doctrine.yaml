@@ -1,0 +1,13 @@
+doctrine:
+    dbal:
+        # Configure a separate "test" database connection
+        # This allows your tests to use an isolated database that's reset between tests
+        dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+        # When using SQLite for tests
+        # url: '%env(resolve:DATABASE_URL)%'
+        # url: 'sqlite:///%kernel.project_dir%/var/test.db'
+    orm:
+        auto_generate_proxy_classes: true
+        enable_lazy_ghost_objects: true
+        report_fields_where_declared: true
+        validate_xml_mapping: true

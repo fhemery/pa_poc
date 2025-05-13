@@ -1,0 +1,2 @@
+- whenever you need to run a composer command, use : docker compose exec php-fpm composer require some/package
+- for PHP backend, the url is http://localhost (with no port number)
