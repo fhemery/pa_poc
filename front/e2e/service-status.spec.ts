@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { HomePage } from './page-objects/home.po';
+import { HomePage } from './pages/home.po';
 
 // Test the service status indicator
 test.describe('Service Status Indicator', () => {
