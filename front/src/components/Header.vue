@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import ServiceStatusIndicator from './ServiceStatusIndicator.vue';
+
+const authStore = useAuthStore();
+const router = useRouter();
+
+// Handle logout
+const handleLogout = async () => {
+  await authStore.logout();
+  router.push('/login');
+};
 </script>
 
 <template>
@@ -18,10 +28,29 @@ import ServiceStatusIndicator from './ServiceStatusIndicator.vue';
 
     <nav class="main-nav">
       <RouterLink to="/">Home</RouterLink>
+      <RouterLink to="/novels">Novels</RouterLink>
       <RouterLink to="/about">About</RouterLink>
+      
+      <!-- Show these links only when user is authenticated -->
+      <template v-if="authStore.isAuthenticated">
+        <RouterLink to="/reviews/create">Write Review</RouterLink>
+      </template>
     </nav>
 
-    <ServiceStatusIndicator />
+    <div class="header-right">
+      <ServiceStatusIndicator />
+      
+      <!-- Auth navigation items -->
+      <div class="auth-nav">
+        <template v-if="authStore.isAuthenticated">
+          <button @click="handleLogout" class="logout-button">Logout</button>
+        </template>
+        <template v-else>
+          <RouterLink to="/login" class="login-button">Login</RouterLink>
+          <RouterLink to="/register" class="register-button">Register</RouterLink>
+        </template>
+      </div>
+    </div>
   </header>
 </template>
 
@@ -65,7 +94,8 @@ import ServiceStatusIndicator from './ServiceStatusIndicator.vue';
 }
 
 .main-nav a.router-link-active {
-  color: #3498db;
+  color: #42b883;
+  font-weight: 600;
 }
 
 .main-nav a.router-link-active::after {
